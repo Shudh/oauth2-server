@@ -10,6 +10,7 @@ db = SQLAlchemy()
 
 
 class User(db.Model):
+    __tablename__ = 'oauth_user'  # Specify a custom table name here.as railway had identical table
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(40), unique=True)
 
@@ -28,7 +29,7 @@ class OAuth2Client(db.Model, OAuth2ClientMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
-        db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+        db.Integer, db.ForeignKey('oauth_user.id', ondelete='CASCADE'))
     user = db.relationship('User')
 
 
@@ -37,7 +38,7 @@ class OAuth2AuthorizationCode(db.Model, OAuth2AuthorizationCodeMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
-        db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+        db.Integer, db.ForeignKey('oauth_user.id', ondelete='CASCADE'))
     user = db.relationship('User')
 
 
@@ -46,7 +47,7 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
-        db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+        db.Integer, db.ForeignKey('oauth_user.id', ondelete='CASCADE'))
     user = db.relationship('User')
 
     def is_refresh_token_active(self):

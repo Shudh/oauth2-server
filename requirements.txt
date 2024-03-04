@@ -1,3 +1,4 @@
 Flask
 Flask-SQLAlchemy
 Authlib
+psycopg2-binary

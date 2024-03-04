@@ -99,3 +99,4 @@ def config_oauth(app):
     # protect resource
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
     require_oauth.register_token_validator(bearer_cls())
+

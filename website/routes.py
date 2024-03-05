@@ -1,3 +1,5 @@
+import json
+import os
 import time
 from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
@@ -7,7 +9,6 @@ from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
 
-
 bp = Blueprint('home', __name__)
 
 
@@ -16,6 +17,17 @@ def current_user():
         uid = session['id']
         return User.query.get(uid)
     return None
+
+
+def save_token_to_file(access_token):
+    # Use Railway's environment variable for the volume mount path
+    file_path = os.path.join(os.environ['RAILWAY_VOLUME_MOUNT_PATH'], 'access_token.txt')
+    try:
+        with open(file_path, 'w') as file:
+            file.write(access_token)
+        print(f'Access token saved to {file_path}')
+    except IOError as e:
+        print(f'Error writing to file: {e}')
 
 
 def split_by_crlf(s):
@@ -114,7 +126,14 @@ def authorize():
 
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():
-    return authorization.create_token_response()
+    # return authorization.create_token_response()
+    response = authorization.create_token_response()
+    response_data = response.get_data(as_text=True)
+    json_data = json.loads(response_data)
+    access_token = json_data.get('access_token', None)
+    if access_token is not None:
+        save_token_to_file(access_token)
+    return response
 
 
 @bp.route('/oauth/revoke', methods=['POST'])

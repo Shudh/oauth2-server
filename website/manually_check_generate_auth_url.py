@@ -3,8 +3,8 @@ from urllib.parse import urljoin
 
 # Configuration for the OAuth2 server
 AUTH_SERVER_BASE_URL = 'https://oauth2-server-production.up.railway.app/'
-CLIENT_ID = 'B4nECMbDhwlIgfNmv7Z7CHyq'
-REDIRECT_URI = 'https://authlib.org'  # Placeholder
+CLIENT_ID = 'kxddvuK9kySSb4BWIBFj1kqJ'
+REDIRECT_URI = 'http://localhost'  # Placeholder
 
 # Authorization endpoint
 authorize_url = urljoin(AUTH_SERVER_BASE_URL, 'oauth/authorize')

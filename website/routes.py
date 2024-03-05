@@ -104,25 +104,40 @@ def create_client():
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def authorize():
+    # Log the original request URL
+    original_url = request.url
+    print(f"Original request URL: {original_url}")
+
+    # Forcibly replace 'http://' with 'https://' in the URL if needed (for debugging purposes)
+    https_authorization_url = original_url.replace('http://', 'https://')
+    print(f"Modified request URL: {https_authorization_url}")
+
     user = current_user()
-    # if user log status is not true (Auth server), then to log it in
     if not user:
-        return redirect(url_for('home.home', next=request.url))
+        # Use the modified URL for the redirect for debugging
+        return redirect(url_for('home.home', next=https_authorization_url))
+
     if request.method == 'GET':
         try:
             grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
-            return error.error
+            # Log the full error and stack trace
+            print("OAuth2Error encountered: %s", error.description)
+            # Consider how to handle the error; returning detailed errors to the browser is for debugging only
+            return jsonify({'error': str(error)}), 400
         return render_template('authorize.html', user=user, grant=grant)
+
+    # POST request handling remains unchanged
     if not user and 'username' in request.form:
         username = request.form.get('username')
         user = User.query.filter_by(username=username).first()
+
     if request.form['confirm']:
         grant_user = user
     else:
         grant_user = None
-    return authorization.create_authorization_response(grant_user=grant_user)
 
+    return authorization.create_authorization_response(grant_user=grant_user)
 
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():

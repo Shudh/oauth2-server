@@ -1,13 +1,14 @@
 import json
 import os
 import time
-from flask import Blueprint, request, session, url_for
+from flask import Blueprint, request, session, url_for, flash
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
+from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('home', __name__)
 
@@ -57,6 +58,45 @@ def home():
 
     return render_template('home.html', user=user, clients=clients)
 
+
+@bp.route('/new_home', methods=['GET', 'POST'])
+def new_home():
+    # Check if user is already logged in
+    if current_user():
+        return render_template('new_home.html', user=current_user())
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        action = request.form['action']
+
+        if action == 'register':
+            # Check if user already exists
+            if User.query.filter_by(username=username).first():
+                flash('Username already exists.')
+                return redirect(url_for('home.new_home'))
+
+            # Create new user with hashed password
+            hashed_password = generate_password_hash(password)
+            new_user = User(username=username, password_hash=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful. Please log in.')
+            return redirect(url_for('home.new_home'))
+
+        elif action == 'login':
+            user = User.query.filter_by(username=username).first()
+
+            # Verify password and log in user
+            if user and check_password_hash(user.password_hash, password):
+                session['id'] = user.id
+                return redirect(url_for('home.new_home'))
+            else:
+                flash('Invalid username or password.')
+                return redirect(url_for('home.new_home'))
+
+    # If GET request or any other condition not met, show registration/login form
+    return render_template('new_home.html')
 
 @bp.route('/logout')
 def logout():
@@ -138,6 +178,7 @@ def authorize():
         grant_user = None
 
     return authorization.create_authorization_response(grant_user=grant_user)
+
 
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():

@@ -1,6 +1,6 @@
 {% if user %}
 <div>Logged in as <strong>{{ user.username }}</strong></div>
-<a href="{{ url_for('.logout') }}">Logout</a>
+<a href="{{ url_for('home.logout') }}">Logout</a>
 {% else %}
 <div class="container">
     <!-- Display Flash Messages -->
@@ -16,7 +16,7 @@
 
     <!-- Registration Form -->
     <div class="registration">
-        <form action="{{ url_for('new_home') }}" method="post">
+        <form action="{{ url_for('home.new_home') }}" method="post">
             <h2>Register</h2>
             <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
@@ -27,7 +27,7 @@
 
     <!-- Login Form -->
     <div class="login">
-        <form action="{{ url_for('new_home') }}" method="post">
+        <form action="{{ url_for('home.new_home') }}" method="post">
             <h2>Login</h2>
             <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>

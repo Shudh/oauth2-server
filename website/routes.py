@@ -155,7 +155,7 @@ def authorize():
     user = current_user()
     if not user:
         # Use the modified URL for the redirect for debugging
-        return redirect(url_for('home.home', next=https_authorization_url))
+        return redirect(url_for('home.new_home', next=https_authorization_url))
 
     if request.method == 'GET':
         try:

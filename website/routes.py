@@ -101,14 +101,17 @@ def new_home():
 @bp.route('/logout')
 def logout():
     del session['id']
-    return redirect('/')
+    flash('You have been logged out.')  # Flash a message to the user
+    return redirect(url_for('home.new_home'))  # Redirect to the new_home endpoint
+    # return redirect('/')
 
 
 @bp.route('/create_client', methods=('GET', 'POST'))
 def create_client():
     user = current_user()
     if not user:
-        return redirect('/')
+        # return redirect('/')
+        return redirect(url_for('home.new_home'))  # Redirect to the new_home endpoint
     if request.method == 'GET':
         return render_template('create_client.html')
 
@@ -139,7 +142,8 @@ def create_client():
 
     db.session.add(client)
     db.session.commit()
-    return redirect('/')
+    return redirect(url_for('home.new_home'))  # Redirect to the new_home endpoint
+    # return redirect('/')
 
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])

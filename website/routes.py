@@ -249,3 +249,33 @@ def protected_data():
         return jsonify({"message": "This is protected data", "user_id": user.id, "username": user.username})
     except Unauthorized as e:
         return jsonify({"error": str(e)}), 401
+
+
+# This is for creating some new endpoints based on openai pet sample so that
+# we have lower possibility to go wrong
+# Hardcoded sample pets data
+pets = [
+    {"id": 1, "name": "Fido", "tag": "dog"},
+    {"id": 2, "name": "Whiskers", "tag": "cat"},
+]
+
+
+@bp.route('/api/pets', methods=['GET'])
+def listPets():
+    limit = request.args.get('limit', 100, type=int)
+    return jsonify(pets[:limit])
+
+
+@bp.route('/api/pets', methods=['POST'])
+def createPets():
+    # This is a simple example, in real scenarios, you would parse and save the incoming request data
+    return jsonify({}), 201
+
+
+@bp.route('/api/pets/<petId>', methods=['GET'])
+def showPetById(petId):
+    pet = next((pet for pet in pets if str(pet['id']) == petId), None)
+    if pet:
+        return jsonify(pet)
+    else:
+        return jsonify({"error": "Pet not found"}), 404

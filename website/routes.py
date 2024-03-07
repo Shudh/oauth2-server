@@ -98,6 +98,7 @@ def new_home():
     # If GET request or any other condition not met, show registration/login form
     return render_template('new_home.html')
 
+
 @bp.route('/logout')
 def logout():
     del session['id']
@@ -206,3 +207,42 @@ def revoke_token():
 def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
+
+
+# This is added so that the resource can be checked without another resource server
+from flask import request, jsonify
+from werkzeug.exceptions import Unauthorized
+from .models import db, OAuth2Token, User
+
+
+def validate_bearer_token():
+    authorization = request.headers.get("Authorization", None)
+    if not authorization:
+        raise Unauthorized(description="Authorization header is missing.")
+
+    prefix = "Bearer "
+    if not authorization.startswith(prefix):
+        raise Unauthorized(description="Invalid authorization header format.")
+
+    token_value = authorization[len(prefix):]
+    token = OAuth2Token.query.filter_by(access_token=token_value).first()
+    if not token or token.revoked:
+        raise Unauthorized(description="Invalid or expired token.")
+
+    # Fetch the user associated with the token
+    user = User.query.get(token.user_id)
+    if not user:
+        raise Unauthorized(description="User not found.")
+
+    # You might want to return user or other data along with token
+    return token, user
+
+
+@bp.route('/api/data')
+def protected_data():
+    try:
+        token, user = validate_bearer_token()
+        # Now you have the user object as well, you can use it as needed
+        return jsonify({"message": "This is protected data", "user_id": user.id, "username": user.username})
+    except Unauthorized as e:
+        return jsonify({"error": str(e)}), 401

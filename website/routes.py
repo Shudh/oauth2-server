@@ -9,6 +9,7 @@ from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timezone
 
 bp = Blueprint('home', __name__)
 
@@ -226,7 +227,9 @@ def validate_bearer_token():
 
     token_value = authorization[len(prefix):]
     token = OAuth2Token.query.filter_by(access_token=token_value).first()
-    if not token or token.revoked:
+
+    # Instead of checking revoked, check if the token is expired
+    if not token or token.expires_in + token.issued_at < datetime.now(timezone.utc).timestamp():
         raise Unauthorized(description="Invalid or expired token.")
 
     # Fetch the user associated with the token
@@ -234,7 +237,7 @@ def validate_bearer_token():
     if not user:
         raise Unauthorized(description="User not found.")
 
-    # You might want to return user or other data along with token
+    # Proceed with token and user
     return token, user
 
 

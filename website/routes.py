@@ -262,9 +262,13 @@ pets = [
 
 @bp.route('/api/pets', methods=['GET'])
 def listPets():
-    limit = request.args.get('limit', 100, type=int)
-    return jsonify(pets[:limit])
-
+    try:
+        token, user = validate_bearer_token()
+        limit = request.args.get('limit', 100, type=int)
+        # return jsonify(pets[:limit])
+        return jsonify({"pets": pets[:limit], "user": {"id": user.id, "username": user.username}})
+    except Unauthorized as e:
+        return jsonify({"error": str(e)}), 401
 
 @bp.route('/api/pets', methods=['POST'])
 def createPets():

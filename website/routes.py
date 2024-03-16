@@ -11,6 +11,8 @@ from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
+from functools import wraps
+
 
 bp = Blueprint('home', __name__)
 
@@ -25,6 +27,7 @@ def log_to_file(message):
 
 
 def detailed_logging(endpoint_func):
+    @wraps(endpoint_func)
     def wrapper(*args, **kwargs):
         log_message = f'Incoming request to {request.path}\n'
         log_message += f'Method: {request.method}\n'

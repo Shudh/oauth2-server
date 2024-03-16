@@ -314,6 +314,7 @@ def protected_data():
 pets = [
     {"id": 1, "name": "Fido", "tag": "dog"},
     {"id": 2, "name": "Whiskers", "tag": "cat"},
+    {"id": 3, "name": "Charlie", "tag": "squirrel"},
 ]
 
 

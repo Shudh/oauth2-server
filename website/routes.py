@@ -315,10 +315,12 @@ pets = [
     {"id": 1, "name": "Fido", "tag": "dog"},
     {"id": 2, "name": "Whiskers", "tag": "cat"},
     {"id": 3, "name": "Charlie", "tag": "squirrel"},
+    {"id": 4, "name": "Buddy", "tag": "dog"},
 ]
 
 
 @bp.route('/api/pets', methods=['GET'])
+@detailed_logging
 def listPets():
     try:
         token, user = validate_bearer_token()

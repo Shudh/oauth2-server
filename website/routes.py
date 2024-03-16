@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from flask import Blueprint, request, session, url_for, flash, send_from_directory
+from flask import Blueprint, request, session, url_for, flash, send_from_directory, after_this_request
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.integrations.flask_oauth2 import current_token
@@ -13,6 +13,38 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 
 bp = Blueprint('home', __name__)
+
+
+def log_to_file(message):
+    file_path = os.path.join(os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/default/path'), 'app.log')
+    try:
+        with open(file_path, 'a') as log_file:  # Use 'a' to append to the file
+            log_file.write(message + "\n")
+    except IOError as e:
+        print(f'Error writing to file: {e}')
+
+
+def detailed_logging(endpoint_func):
+    def wrapper(*args, **kwargs):
+        log_message = f'Incoming request to {request.path}\n'
+        log_message += f'Method: {request.method}\n'
+        log_message += f'Headers: {json.dumps(dict(request.headers), indent=2)}\n'
+        log_message += f'Body: {request.get_data(as_text=True)}\n'
+
+        log_to_file(log_message)
+
+        @after_this_request
+        def log_response(response):
+            log_message = f'Outgoing response from {request.path}\n'
+            log_message += f'Status: {response.status}\n'
+            log_message += f'Headers: {json.dumps(dict(response.headers), indent=2)}\n'
+            # Response body logging is not included here to avoid complexity and potential issues with binary data.
+            log_to_file(log_message)
+            return response
+
+        return endpoint_func(*args, **kwargs)
+
+    return wrapper
 
 
 def current_user():
@@ -169,6 +201,7 @@ def create_client():
 
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@detailed_logging
 def authorize():
     # Log the original request URL
     original_url = request.url
@@ -207,6 +240,7 @@ def authorize():
 
 
 @bp.route('/oauth/token', methods=['POST'])
+@detailed_logging
 def issue_token():
     # return authorization.create_token_response()
     response = authorization.create_token_response()

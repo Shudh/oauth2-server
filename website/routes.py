@@ -146,7 +146,11 @@ def new_home():
             # Verify password and log in user
             if user and check_password_hash(user.password_hash, password):
                 session['id'] = user.id
-                return redirect(url_for('home.new_home'))
+                # Now let the user give consent
+                # return redirect(url_for('home.new_home'))
+                # Redirect user to the stored URL or back to the new_home page if no redirect URL is set
+                redirect_url = session.pop('post_login_redirect', url_for('home.new_home'))
+                return redirect(redirect_url)
             else:
                 flash('Invalid username or password.')
                 return redirect(url_for('home.new_home'))
@@ -216,6 +220,9 @@ def authorize():
 
     user = current_user()
     if not user:
+        # This is added to redirect the user to consent page after he is logged in
+        # Store the intended authorization URL in the session for later redirection
+        session['post_login_redirect'] = https_authorization_url
         # Use the modified URL for the redirect for debugging
         return redirect(url_for('home.new_home', next=https_authorization_url))
 

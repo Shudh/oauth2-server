@@ -18,9 +18,9 @@ bp = Blueprint('home', __name__)
 
 
 def log_to_file(message):
-    file_path = os.path.join(os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/default/path'), 'app.log')
+    file_path = os.path.join(os.environ['RAILWAY_VOLUME_MOUNT_PATH'], 'app.log')
     try:
-        with open(file_path, 'a') as log_file:  # Use 'a' to append to the file
+        with open(file_path, 'a') as log_file:
             log_file.write(message + "\n")
     except IOError as e:
         print(f'Error writing to file: {e}')

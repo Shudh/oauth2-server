@@ -1,7 +1,8 @@
+# routes.py
 import json
 import os
 import time
-from flask import Blueprint, request, session, url_for, flash
+from flask import Blueprint, request, session, url_for, flash, send_from_directory
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.integrations.flask_oauth2 import current_token
@@ -58,6 +59,25 @@ def home():
         clients = []
 
     return render_template('home.html', user=user, clients=clients)
+
+
+@bp.route('/files')
+def list_files():
+    directory = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    files = os.listdir(directory)
+    files_list = '<ul>'
+    for file in files:
+        file_path = url_for('home.file',
+                            filename=file)  # Adjust the 'home.file' based on your blueprint name if necessary
+        files_list += f'<li><a href="{file_path}">{file}</a></li>'
+    files_list += '</ul>'
+    return files_list
+
+
+@bp.route('/files/<filename>')
+def file(filename):
+    directory = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    return send_from_directory(directory, filename)
 
 
 @bp.route('/new_home', methods=['GET', 'POST'])
@@ -269,6 +289,7 @@ def listPets():
         return jsonify({"pets": pets[:limit], "user": {"id": user.id, "username": user.username}})
     except Unauthorized as e:
         return jsonify({"error": str(e)}), 401
+
 
 @bp.route('/api/pets', methods=['POST'])
 def createPets():

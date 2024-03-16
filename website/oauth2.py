@@ -1,3 +1,4 @@
+# oauth2.py
 from authlib.integrations.flask_oauth2 import (
     AuthorizationServer,
     ResourceProtector,

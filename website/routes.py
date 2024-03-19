@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from flask import Blueprint, request, session, url_for, flash, send_from_directory, after_this_request
+from flask import Blueprint, request, session, url_for, flash, send_from_directory, after_this_request, current_app
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.integrations.flask_oauth2 import current_token
@@ -12,7 +12,6 @@ from .oauth2 import authorization, require_oauth
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from functools import wraps
-
 
 bp = Blueprint('home', __name__)
 
@@ -262,6 +261,33 @@ def issue_token():
     return response
 
 
+# start: google oauth
+@bp.route('/google/login')
+def google_login():
+    google = current_app.config['GOOGLE_OAUTH_CLIENT']
+    redirect_uri = url_for('home.google_authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@bp.route('/google/authorize')
+def google_authorize():
+    google = current_app.config['GOOGLE_OAUTH_CLIENT']
+    token = google.authorize_access_token()
+    user_info = google.parse_id_token(token)
+
+    # Check if user exists, if not, create a new one
+    user = User.query.filter_by(username=user_info['email']).first()
+    if not user:
+        user = User(username=user_info['email'])
+        db.session.add(user)
+        db.session.commit()
+
+    session['id'] = user.id
+    return redirect(url_for('home.new_home'))
+
+
+# end: google oauth
+
 @bp.route('/oauth/revoke', methods=['POST'])
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
@@ -305,10 +331,39 @@ def validate_bearer_token():
     return token, user
 
 
+def validate_bearer_token_1():
+    google = current_app.config['GOOGLE_OAUTH_CLIENT']
+    authorization = request.headers.get("Authorization", None)
+    if not authorization:
+        raise Unauthorized(description="Authorization header is missing.")
+
+    prefix = "Bearer "
+    if not authorization.startswith(prefix):
+        raise Unauthorized(description="Invalid authorization header format.")
+
+    token_value = authorization[len(prefix):]
+    token = OAuth2Token.query.filter_by(access_token=token_value).first()
+
+    if token:
+        if token.expires_in + token.issued_at < datetime.now(timezone.utc).timestamp():
+            raise Unauthorized(description="Invalid or expired token.")
+        user = User.query.get(token.user_id)
+    else:
+        user_info = google.parse_id_token(token_value)
+        if not user_info:
+            raise Unauthorized(description="Invalid or expired token.")
+        user = User.query.filter_by(username=user_info['email']).first()
+
+    if not user:
+        raise Unauthorized(description="User not found.")
+
+    return token, user
+
+
 @bp.route('/api/data')
 def protected_data():
     try:
-        token, user = validate_bearer_token()
+        token, user = validate_bearer_token_1()
         # Now you have the user object as well, you can use it as needed
         return jsonify({"message": "This is protected data", "user_id": user.id, "username": user.username})
     except Unauthorized as e:
@@ -330,7 +385,7 @@ pets = [
 @detailed_logging
 def listPets():
     try:
-        token, user = validate_bearer_token()
+        token, user = validate_bearer_token_1()
         limit = request.args.get('limit', 100, type=int)
         # return jsonify(pets[:limit])
         return jsonify({"pets": pets[:limit], "user": {"id": user.id, "username": user.username}})

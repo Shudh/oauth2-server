@@ -1,3 +1,4 @@
+{#new_home.html#}
 {% if user %}
 <div>Logged in as <strong>{{ user.username }}</strong></div>
 <a href="{{ url_for('home.logout') }}">Logout</a>
@@ -35,6 +36,11 @@
             <button type="submit">Login</button>
         </form>
     </div>
+    <!-- Google OAuth Login Button -->
+    <div class="google-login">
+        <a href="{{ url_for('home.google_login') }}" class="button">Login with Google</a>
+    </div>
+
 </div>
 {% endif %}
 

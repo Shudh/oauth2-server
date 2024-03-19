@@ -265,7 +265,7 @@ def issue_token():
 @bp.route('/google/login')
 def google_login():
     google = current_app.config['GOOGLE_OAUTH_CLIENT']
-    redirect_uri = url_for('home.google_authorize', _external=True)
+    redirect_uri = os.environ.get('OPENAI_REDIRECT_URI')
     return google.authorize_redirect(redirect_uri)
 
 
@@ -283,7 +283,8 @@ def google_authorize():
         db.session.commit()
 
     session['id'] = user.id
-    return redirect(url_for('home.new_home'))
+    # Redirect to the originally intended URL or default to new_home if not set
+    return redirect(session.get('post_login_redirect', url_for('home.new_home')))
 
 
 # end: google oauth

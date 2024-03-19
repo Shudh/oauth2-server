@@ -209,6 +209,10 @@ def create_client():
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
 @detailed_logging
 def authorize():
+    # This state mismatch happens only when we go to google
+    # Store the incoming state parameter
+    incoming_state = request.args.get('state')
+    session['gpt_state'] = incoming_state
     # Log the original request URL
     original_url = request.url
     print(f"Original request URL: {original_url}")
@@ -265,8 +269,10 @@ def issue_token():
 @bp.route('/google/login')
 def google_login():
     google = current_app.config['GOOGLE_OAUTH_CLIENT']
+    # Retrieve the state intended for the custom GPT (OpenAI) from the session
+    gpt_state = session.get('gpt_state')
     redirect_uri = os.environ.get('OPENAI_REDIRECT_URI')
-    return google.authorize_redirect(redirect_uri)
+    return google.authorize_redirect(redirect_uri, state=gpt_state)
 
 
 @bp.route('/google/authorize')
@@ -284,7 +290,14 @@ def google_authorize():
 
     session['id'] = user.id
     # Redirect to the originally intended URL or default to new_home if not set
-    return redirect(session.get('post_login_redirect', url_for('home.new_home')))
+    # return redirect(session.get('post_login_redirect', url_for('home.new_home')))
+    # Use the stored state intended for the custom GPT (OpenAI) for the redirect
+    gpt_state = session.pop('gpt_state', None)
+    # Construct the redirect URL to the custom GPT, including the state
+    redirect_url = session.pop('post_login_redirect', url_for('home.new_home'))
+    if gpt_state:
+        redirect_url = f"{redirect_url}?state={gpt_state}"
+    return redirect(redirect_url)
 
 
 # end: google oauth

@@ -252,27 +252,66 @@ def authorize():
     return authorization.create_authorization_response(grant_user=grant_user)
 
 
+# Shudh: working function with custom oauth commented to add a new function
+# to handle google oauth too
+# @bp.route('/oauth/token', methods=['POST'])
+# @detailed_logging
+# def issue_token():
+#     # return authorization.create_token_response()
+#     response = authorization.create_token_response()
+#     response_data = response.get_data(as_text=True)
+#     json_data = json.loads(response_data)
+#     access_token = json_data.get('access_token', None)
+#     if access_token is not None:
+#         save_token_to_file(access_token)
+#     return response
+
 @bp.route('/oauth/token', methods=['POST'])
 @detailed_logging
 def issue_token():
-    # return authorization.create_token_response()
-    response = authorization.create_token_response()
-    response_data = response.get_data(as_text=True)
-    json_data = json.loads(response_data)
-    access_token = json_data.get('access_token', None)
-    if access_token is not None:
-        save_token_to_file(access_token)
-    return response
+    if 'oauth_flow' in session and session['oauth_flow'] == 'google':
+        # Extract the authorization code from the request
+        auth_code = request.form.get('code')
+        redirect_uri = request.form.get('redirect_uri')
+
+        google = current_app.config['GOOGLE_OAUTH_CLIENT']
+        try:
+            # Exchange the authorization code for an access token
+            token = google.fetch_token(
+                authorization_response=request.url,
+                auth_code=auth_code,
+                redirect_uri=redirect_uri
+            )
+            # Log the token for debugging
+            print(f"Google access token: {token}")
+            session.pop('oauth_flow', None)  # Clear the OAuth flow from the session
+            return jsonify({'success': True, 'token': token}), 200
+        except Exception as e:
+            print(f"Error exchanging token: {e}")
+            return jsonify({'error': 'Failed to exchange token'}), 400
+    else:
+        # Existing custom OAuth flow
+        response = authorization.create_token_response()
+        response_data = response.get_data(as_text=True)
+        json_data = json.loads(response_data)
+        access_token = json_data.get('access_token', None)
+        if access_token is not None:
+            save_token_to_file(access_token)
+        return response
 
 
 # start: google oauth
 @bp.route('/google/login')
 def google_login():
+    # Store the flow type in the session to identify it later in the OAuth process
+    session['oauth_flow'] = 'google'
     google = current_app.config['GOOGLE_OAUTH_CLIENT']
     # Retrieve the state intended for the custom GPT (OpenAI) from the session
     gpt_state = session.get('gpt_state')
-    redirect_uri = os.environ.get('OPENAI_REDIRECT_URI')
-    return google.authorize_redirect(redirect_uri, state=gpt_state)
+    # redirect_uri = os.environ.get('OPENAI_REDIRECT_URI')
+    redirect_uri = url_for('home.google_authorize', _external=True)
+    # return google.authorize_redirect(redirect_uri, state=gpt_state)
+    return google.authorize_redirect(redirect_uri)
 
 
 @bp.route('/google/authorize')
@@ -294,10 +333,11 @@ def google_authorize():
     # Use the stored state intended for the custom GPT (OpenAI) for the redirect
     gpt_state = session.pop('gpt_state', None)
     # Construct the redirect URL to the custom GPT, including the state
-    redirect_url = session.pop('post_login_redirect', url_for('home.new_home'))
+    # Redirect to the OpenAI custom GPT callback URL
+    gpt_callback_url = os.environ.get('OPENAI_REDIRECT_URI')
     if gpt_state:
-        redirect_url = f"{redirect_url}?state={gpt_state}"
-    return redirect(redirect_url)
+        gpt_callback_url = f"{gpt_callback_url}?state={gpt_state}"
+    return redirect(gpt_callback_url)
 
 
 # end: google oauth

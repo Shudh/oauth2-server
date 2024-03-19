@@ -317,7 +317,8 @@ def google_login():
 @bp.route('/google/authorize')
 def google_authorize():
     google = current_app.config['GOOGLE_OAUTH_CLIENT']
-    token = google.authorize_access_token()
+    redirect_uri = url_for('home.google_authorize', _external=True)
+    token = google.authorize_access_token(redirect_uri=redirect_uri)
     user_info = google.parse_id_token(token)
 
     # Check if user exists, if not, create a new one
